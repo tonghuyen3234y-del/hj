@@ -2,9 +2,9 @@
 
 发布源码以 `huijie-space` 目录为准；相邻的 `github-pages`、`personal-home` 是此前版本，不参与这次发布。
 
-目标仓库：`tonghuyen3234y-del/tonghuyen3234y-del.github.io`。
-目标网址：<https://tonghuyen3234y-del.github.io/>。
-实际发布状态以仓库 Actions 和 Settings → Pages 显示为准。
+源码仓库：[tonghuyen3234y-del/tonghuyen3234y-del.github.io](https://github.com/tonghuyen3234y-del/tonghuyen3234y-del.github.io)。
+网站网址：<https://tonghuyen3234y-del.github.io/>。
+发布状态：[GitHub Actions](https://github.com/tonghuyen3234y-del/tonghuyen3234y-del.github.io/actions)。
 
 ## 自动发布
 
@@ -14,7 +14,7 @@
 2. 上传 `dist/` 作为 GitHub Pages artifact。
 3. 部署到 `github-pages` 环境。
 
-仓库的 Settings → Pages → Build and deployment → Source 需选择 **GitHub Actions**。这个设置只需配置一次。
+仓库的 Settings → Pages → Build and deployment → Source 已配置为 **GitHub Actions**。保持这个设置；从分支根目录直接发布会漏掉构建后的子页面。
 
 网站所有图片、模型和引擎均在仓库内；CI 直接使用已生成的昼夜图片，无需安装 Blender。网站运行无需后端、环境变量或 API Key。
 
