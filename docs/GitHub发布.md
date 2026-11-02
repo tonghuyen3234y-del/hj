@@ -2,9 +2,9 @@
 
 发布源码以 `huijie-space` 目录为准；相邻的 `github-pages`、`personal-home` 是此前版本，不参与这次发布。
 
-源码仓库：[tonghuyen3234y-del/tonghuyen3234y-del.github.io](https://github.com/tonghuyen3234y-del/tonghuyen3234y-del.github.io)。
-网站网址：<https://tonghuyen3234y-del.github.io/>。
-发布状态：[GitHub Actions](https://github.com/tonghuyen3234y-del/tonghuyen3234y-del.github.io/actions)。
+源码仓库：[tonghuyen3234y-del/hj](https://github.com/tonghuyen3234y-del/hj)。
+网站网址：<https://tonghuyen3234y-del.github.io/hj/>。
+发布状态：[GitHub Actions](https://github.com/tonghuyen3234y-del/hj/actions)。
 
 ## 自动发布
 
@@ -33,10 +33,12 @@ git push origin main
 
 ## 展示入口
 
-- 首页：<https://tonghuyen3234y-del.github.io/>
-- 中文主页：<https://tonghuyen3234y-del.github.io/home/>
-- 文章：<https://tonghuyen3234y-del.github.io/home/#writing>
-- 驾驶：<https://tonghuyen3234y-del.github.io/drive/>
-- English：<https://tonghuyen3234y-del.github.io/en/home/>
+- 首页：<https://tonghuyen3234y-del.github.io/hj/>
+- 中文主页：<https://tonghuyen3234y-del.github.io/hj/home/>
+- 文章：<https://tonghuyen3234y-del.github.io/hj/home/#writing>
+- 驾驶：<https://tonghuyen3234y-del.github.io/hj/drive/>
+- English：<https://tonghuyen3234y-del.github.io/hj/en/home/>
 
 如果一次更新部署失败，可以在 Actions 查看失败步骤；已经成功发布的上一版仍保留。
+
+仓库已由 `tonghuyen3234y-del.github.io` 改名为 `hj`，对应免费项目网址 `/hj/`。本地 `origin` 同步为新仓库地址；网站内部链接与模型按模块所在位置解析，支持项目子目录部署。
