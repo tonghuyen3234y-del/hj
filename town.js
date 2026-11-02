@@ -1,0 +1,29 @@
+import {townLayout} from './assets/town/layout.js';
+const dayURL=new URL('./assets/town/day.png',import.meta.url).href;
+const nightURL=new URL('./assets/town/night.png',import.meta.url).href;
+const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+export function beijingSeconds(date=new Date()){
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(date);
+ const n=type=>Number(parts.find(part=>part.type===type)?.value||0);return n('hour')*3600+n('minute')*60+n('second');
+}
+export function townTimeMode(seconds){return seconds<21600||seconds>=66600?'night':'day';}
+export function nextTownBoundary(seconds){return seconds<21600?21600-seconds:seconds<66600?66600-seconds:86400-seconds+21600;}
+export function renderTown({buildings,p,t,lang}){
+ const mode=townTimeMode(beijingSeconds());
+ return `<div class="town-hero" data-time="${mode}" aria-label="${esc(p.town[lang])}"><div class="town-masthead"><span>${esc(p.town[lang])} / A LITTLE WORLD OF MINE</span><div class="town-clock" aria-label="${lang==='zh'?'切换小镇昼夜':'Switch between day and night'}"><button data-time="day" aria-pressed="${mode==='day'}">${t.day}</button><span>/</span><button data-time="night" aria-pressed="${mode==='night'}">${t.night}</button></div></div><div class="town-visual town-scene"><img class="town-still town-still-day" src="${dayURL}" width="2000" height="1250" alt="${lang==='zh'?'好奇小镇昼景，六栋小屋与一辆橙色小车':'Daylight in Huijie’s little town, six houses and an orange car'}" fetchpriority="${mode==='day'?'high':'low'}"><img class="town-still town-still-night" src="${nightURL}" width="2000" height="1250" alt="${lang==='zh'?'好奇小镇夜景，路灯与小屋亮起暖光':'Night in Huijie’s little town, with warm lights in the houses'}" fetchpriority="${mode==='night'?'high':'low'}"><div class="town-clouds" aria-hidden="true"></div><div class="town-smoke" style="left:${townLayout.chimney[0]/10}%;top:${townLayout.chimney[1]/6.25}%" aria-hidden="true"><i></i><i></i><i></i></div><svg class="town-map" viewBox="0 0 1000 625" aria-label="${lang==='zh'?'选一间小屋，走近认识我':'Choose a house and step inside'}"><defs>${buildings.map(b=>`<clipPath id="clip-${b.id}"><polygon points="${townLayout[b.id].polygon.map(p=>p.join(',')).join(' ')}"/></clipPath>`).join('')}</defs>${buildings.map((b,i)=>{
+  const region=townLayout[b.id],points=region.polygon.map(point=>point.join(',')).join(' '),[x,y]=region.label;
+  return `<a class="town-building" data-building="${b.id}" href="#${b.id}" aria-label="${esc(b[lang].join(' · '))}"><title>${esc(b[lang].join(' · '))}</title><image class="town-highlight town-highlight-day" href="${dayURL}" width="1000" height="625" clip-path="url(#clip-${b.id})" aria-hidden="true"/><image class="town-highlight town-highlight-night" href="${nightURL}" width="1000" height="625" clip-path="url(#clip-${b.id})" aria-hidden="true"/><polygon class="town-building-hit" points="${points}"/><polygon class="town-building-outline" points="${points}" aria-hidden="true"/><g class="town-building-tag" transform="translate(${x},${Math.max(24,y-8)})" aria-hidden="true"><rect x="-81" y="-17" width="162" height="31" rx="2"/><text text-anchor="middle" y="3">0${i+1} · ${esc(b[lang][0])} ↗</text></g></a>`;
+ }).join('')}</svg><p class="town-image-error" hidden>${t.fallbackTitle}</p></div><div class="town-caption"><span>${t.townCaption}</span><span>${t.townScale}</span></div><div class="town-index">${buildings.map((b,i)=>`<a data-town-link="${b.id}" href="#${b.id}"><small>0${i+1}</small><span>${esc(b[lang][0])}</span><span aria-hidden="true">↗</span></a>`).join('')}</div></div>`;
+}
+export function initTown(){
+ const hero=document.querySelector('.town-hero');if(!hero)return;let manual=false,timer;
+ const apply=mode=>{hero.dataset.time=mode;hero.querySelectorAll('.town-still').forEach(image=>image.setAttribute('aria-hidden',String(!image.classList.contains('town-still-'+mode))));hero.querySelectorAll('button[data-time]').forEach(button=>{const active=button.dataset.time===mode;button.setAttribute('aria-pressed',String(active));button.classList.toggle('active',active);});};
+ const sync=()=>{clearTimeout(timer);if(manual||document.hidden)return;const seconds=beijingSeconds();apply(townTimeMode(seconds));timer=setTimeout(sync,nextTownBoundary(seconds)*1000+100);};
+ hero.querySelectorAll('button[data-time]').forEach(button=>button.addEventListener('click',()=>{manual=true;clearTimeout(timer);apply(button.dataset.time);}));sync();
+ const setActive=id=>{hero.querySelectorAll('[data-building]').forEach(node=>node.classList.toggle('is-active',node.dataset.building===id));hero.querySelectorAll('[data-town-link]').forEach(node=>node.classList.toggle('is-active',node.dataset.townLink===id));};
+ hero.querySelectorAll('[data-building],[data-town-link]').forEach(node=>{const id=node.dataset.building||node.dataset.townLink;node.addEventListener('pointerenter',()=>setActive(id));node.addEventListener('pointerleave',()=>setActive(null));node.addEventListener('focus',()=>setActive(id));node.addEventListener('blur',()=>setActive(null));});
+ const observer=new IntersectionObserver(entries=>hero.classList.toggle('is-awake',entries[0].isIntersecting&&!document.hidden));observer.observe(hero);
+ const visible=()=>{const rect=hero.getBoundingClientRect();hero.classList.toggle('is-awake',!document.hidden&&rect.bottom>0&&rect.top<innerHeight);if(document.hidden)clearTimeout(timer);else sync();};document.addEventListener('visibilitychange',visible);
+ hero.querySelectorAll('.town-still').forEach(image=>image.addEventListener('error',()=>{hero.querySelector('.town-image-error').hidden=false;},{once:true}));
+ window.addEventListener('pagehide',()=>{clearTimeout(timer);observer.disconnect();document.removeEventListener('visibilitychange',visible);},{once:true});
+}
