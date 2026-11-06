@@ -20,6 +20,7 @@ const engineStub=`export class DriveExperience extends EventTarget {
 }`;
 async function page(route,{width=1280,reduced=false,memory=null}={}){
  const w=new Window({url:'http://huijie.local'+basePath+route,settings:{disableCSSFileLoading:true,disableJavaScriptFileLoading:true}});
+ const navigations=[];w.location.assign=target=>navigations.push(target);
  w.innerWidth=width;w.innerHeight=900;
  w.document.body.innerHTML='<div id="app"></div>';
  Object.defineProperty(w.document,'fonts',{value:{ready:Promise.resolve()}});
@@ -47,7 +48,7 @@ async function page(route,{width=1280,reduced=false,memory=null}={}){
  const main=await load('http://huijie.local'+basePath+'app.js');await main.evaluate();
  const flush=async()=>{for(let i=0;i<4;i++)await new Promise(resolve=>setTimeout(resolve,5));};await flush();
  const click=(selector,options={})=>{const el=typeof selector==='string'?w.document.querySelector(selector):selector;assert.ok(el,'Missing action '+selector);el.dispatchEvent(new w.MouseEvent('click',{bubbles:true,cancelable:true,button:0,...options}));return el;};
- return {w,d:w.document,click,copied,flush,close:async()=>{w.dispatchEvent(new w.Event('pagehide'));await w.happyDOM.close();}};
+ return {w,d:w.document,click,copied,navigations,flush,close:async()=>{w.dispatchEvent(new w.Event('pagehide'));await w.happyDOM.close();}};
 }
 for(const lang of ['','en/'])for(const route of ['','home/','drive/','about/','projects/','resume/','writing/','contact/']){
  const p=await page(lang+route,{width:390,reduced:true});
@@ -87,5 +88,30 @@ for(const lang of ['','en/'])for(const route of ['','home/','drive/','about/','p
  p.w.changeMedia(true,false);await p.flush();assert.equal(e.destroyed,true);assert.equal(p.d.querySelector('.drive-dialog').hidden,true);assert.equal(p.d.querySelector('.drive-fallback').hidden,false);
  p.w.changeMedia(false,false);await p.flush();assert.notEqual(p.w.testEngine,e);assert.equal(p.w.testLoads,2);
  p.w.changeMedia(false,true);await p.flush();assert.equal(p.w.testEngine.destroyed,true);assert.equal(p.d.querySelector('.drive-fallback h2').textContent,'用安静的方式，走进小镇');checks+=6;await p.close();
+}
+// Only the selected stub's completion may navigate; other animation events bubble too.
+for(const language of ['','en/']){
+ const p=await page(language),home=p.d.querySelector('[data-mode="home"]'),stub=home.querySelector('.ticket-stub');
+ const ended=(target,name)=>{const event=new p.w.Event('animationend',{bubbles:true});Object.defineProperty(event,'animationName',{value:name});target.dispatchEvent(event);};
+ p.d.querySelector('#remember-choice').checked=true;p.click(home);
+ assert.ok(home.classList.contains('is-tearing'));assert.equal(home.getAttribute('aria-busy'),'true');assert.equal(p.navigations.length,0);
+ p.click('[data-mode="drive"]');assert.equal(p.w.localStorage.getItem('huijie:preferred-mode'),'home');assert.ok(!p.d.querySelector('[data-mode="drive"]').classList.contains('is-tearing'));
+ ended(stub.querySelector('.ticket-stub-face'),'ticket-fold');ended(stub,'paper-enter');assert.equal(p.navigations.length,0);
+ ended(stub,'ticket-stub-tear');ended(stub,'ticket-stub-tear');assert.deepEqual(p.navigations,['http://huijie.local'+basePath+language+'home/']);
+ p.click('[data-mode="drive"]');assert.ok(!p.d.querySelector('[data-mode="drive"]').classList.contains('is-tearing'));
+ p.w.dispatchEvent(new p.w.Event('pageshow'));assert.equal(home.getAttribute('aria-busy'),null);assert.ok(!home.classList.contains('is-tearing'));assert.equal(home.style.getPropertyValue('--stub-start'),'');
+ checks+=4;await p.close();
+}
+{
+ const p=await page('');p.click('[data-mode="drive"]');await new Promise(resolve=>setTimeout(resolve,840));
+ assert.deepEqual(p.navigations,['http://huijie.local'+basePath+'drive/']);checks++;await p.close();
+}
+{
+ const p=await page('');p.click('[data-mode="home"]');p.w.dispatchEvent(new p.w.Event('pagehide'));p.w.dispatchEvent(new p.w.Event('pageshow'));await new Promise(resolve=>setTimeout(resolve,840));
+ assert.equal(p.navigations.length,0);p.click('[data-mode="drive"]');p.w.changeMedia(false,true);assert.deepEqual(p.navigations,['http://huijie.local'+basePath+'drive/']);checks+=2;await p.close();
+}
+{
+ const p=await page('',{reduced:true}),event=new p.w.MouseEvent('click',{bubbles:true,cancelable:true,button:0});
+ p.d.querySelector('[data-mode="home"]').dispatchEvent(event);assert.equal(event.defaultPrevented,false);assert.ok(!p.d.querySelector('.is-tearing'));checks++;await p.close();
 }
 console.log(`Passed ${checks} DOM state scenarios at ${basePath}; engine/observers/canvas were stubbed. Visual and WebGL checks are not covered.`);

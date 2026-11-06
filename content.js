@@ -92,6 +92,7 @@ export const words = {
   zh: {
     nav:['入口','探索','主页','关于','项目','文章','经历','联系'], switch:'中文 / EN',
     gateKicker:'检票口 · 请选一张票', gateIntro:'选择一条路线，走进我的个人小镇：直接看主页，或者开车探索。',
+    tearHint:'点击撕票，开启这段旅程',
     direct:'简明模式', directDesc:'直接进入主页，认识我、慢变量AI，以及正在酝酿的想法。', directCta:'进入主页',
     drive:'探索模式', driveDesc:'开一辆橙色小车，逛逛好奇小镇的六间小屋。', driveCta:'开车逛好奇小镇',
     reading:'阅读票', driving:'驾驶票', station:'站点', duration:'约 3 分钟', seat:'座位 随意', desktop:'仅限桌面',
@@ -119,6 +120,7 @@ export const words = {
   en: {
     nav:['Entrance','Explore','Home','About','Projects','Writing','Experience','Connect'], switch:'EN / 中文',
     gateKicker:'TICKET OFFICE · PICK YOUR ROUTE', gateIntro:'Two ways into my little world: read the homepage, or take the scenic drive.',
+    tearHint:'Click to tear your ticket',
     direct:'The direct route', directDesc:'Meet me, discover Slow Variables, and find ideas taking shape.', directCta:'Enter the homepage',
     drive:'The scenic route', driveDesc:'Take a little orange car around the six houses of my curious town.', driveCta:'Drive around town',
     reading:'READ', driving:'DRIVE', station:'ROUTE', duration:'ABOUT 3 MIN', seat:'SEAT ANYWHERE', desktop:'DESKTOP ONLY',

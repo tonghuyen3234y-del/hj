@@ -28,7 +28,7 @@ function footer() {
 }
 function ticket(kind) {
   const drive = kind === 'drive';
-  return `<a class="ticket ${drive?'ticket-forest desktop-only':'ticket-paper'}" href="${url(drive?'drive/':'home/')}" data-mode="${kind}"><span class="ticket-main"><span class="ticket-top"><span>${drive?'TOWN HJ.':'DIRECT ROUTE'}</span><span class="ticket-no">NO.HJ.–0${drive?2:1}</span></span><strong>${drive?t.drive:t.direct}</strong><span class="ticket-description">${drive?t.driveDesc:t.directDesc}</span><span class="ticket-meta"><span>${t.station} /${drive?'DRIVE':'HOME'}/</span><span>${drive?'WASD':t.duration}</span><span>${drive?t.desktop:t.seat}</span></span><span class="ticket-cta">${drive?t.driveCta:t.directCta} →</span></span><span class="ticket-stub" aria-hidden="true"><span class="ticket-kind">${drive?t.driving:t.reading}</span><span class="barcode"></span><span class="stub-no">NO.HJ.–0${drive?2:1}</span></span></a>`;
+  return `<a class="ticket ${drive?'ticket-forest desktop-only':'ticket-paper'}" href="${url(drive?'drive/':'home/')}" data-mode="${kind}"><span class="ticket-main-wrap"><span class="ticket-main"><span class="ticket-top"><span>${drive?'TOWN HJ.':'DIRECT ROUTE'}</span><span class="ticket-no">NO.HJ.–0${drive?2:1}</span></span><strong>${drive?t.drive:t.direct}</strong><span class="ticket-description">${drive?t.driveDesc:t.directDesc}</span><span class="ticket-meta"><span>${t.station} /${drive?'DRIVE':'HOME'}/</span><span>${drive?'WASD':t.duration}</span><span>${drive?t.desktop:t.seat}</span></span><span class="ticket-cta">${drive?t.driveCta:t.directCta} →</span><span class="ticket-hint">${t.tearHint}</span></span></span><span class="ticket-stub" aria-hidden="true"><span class="ticket-stub-face"><span class="ticket-kind">${drive?t.driving:t.reading}</span><span class="barcode"></span><span class="stub-no">NO.HJ.–0${drive?2:1}</span></span></span></a>`;
 }
 function entrance() {
   return `<section class="gateway container"><div class="remember-status" hidden><span data-remember-label></span><a data-continue>${t.continue}</a><button data-choose>${t.choose}</button><button data-clear>${t.clear}</button></div><div class="gateway-intro"><div class="eyebrow">${t.gateKicker}</div><h1 class="gateway-title" aria-label="${esc(L(p.name))} HJ.">${halftone(lang==='zh'?'李慧洁 HJ.':'Huijie’s Space')}</h1><p>${t.gateIntro}</p></div><div class="ticket-grid">${ticket('home')}${ticket('drive')}</div><label class="remember-choice"><input type="checkbox" id="remember-choice">${t.remember}</label><div class="gateway-signoff">${lang==='zh'?p.sloganZh:p.slogan}</div></section>`;
@@ -83,7 +83,6 @@ document.body.classList.toggle('is-drive',route==='drive');
 document.title = `${route==='entrance'?(lang==='zh'?'入口':'Entrance'):route==='home'?L(p.name):route==='drive'?L(p.town):t.nav[{about:3,projects:4,writing:5,resume:6,contact:7}[route]]||'404'} | Huijie's Space`;
 document.getElementById('app').innerHTML = `${header()}<div class="reading-progress" aria-hidden="true"></div><main id="main">${page}</main>${route==='drive'?'':footer()}<div id="toast" role="status" aria-live="polite"></div>`;
 
-const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 initMotion();
 function toast(message){const el=document.getElementById('toast');el.textContent=message;el.classList.add('visible');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('visible'),2400);}
 const copyTimers=new WeakMap();
@@ -98,20 +97,42 @@ if(location.hash)requestAnimationFrame(()=>document.getElementById(decodeURIComp
 function updateClock(){const time=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit'}).format(new Date());document.querySelectorAll('.beijing-clock').forEach(el=>el.textContent=(lang==='zh'?'北京时间 ':'BEIJING ')+time);}
 updateClock();if(document.querySelector('.beijing-clock'))setInterval(updateClock,30000);
 if(route==='entrance'){
- const storageKey='huijie:preferred-mode',status=document.querySelector('.remember-status'),checkbox=document.getElementById('remember-choice');let choosing=false,navigating=false;
+ const storageKey='huijie:preferred-mode',status=document.querySelector('.remember-status'),checkbox=document.getElementById('remember-choice');
+ const tickets=[...document.querySelectorAll('[data-mode]')],motionPreference=matchMedia('(prefers-reduced-motion: reduce)');
+ let choosing=false,navigating=false,activeTicket=null,navigationTimer;
  const read=()=>{try{return localStorage.getItem(storageKey);}catch{return null;}};
  const remove=()=>{try{localStorage.removeItem(storageKey);}catch{}};
  const show=()=>{const value=read();status.hidden=choosing||!['home','drive'].includes(value)||(value==='drive'&&innerWidth<761);if(!status.hidden){document.querySelector('[data-remember-label]').textContent=t.remembered+' · '+(value==='home'?t.direct:t.drive);document.querySelector('[data-continue]').href=url(value+'/');}};
- const reset=()=>{navigating=false;document.querySelectorAll('[data-mode]').forEach(link=>link.classList.remove('is-tearing'));};
+ const reset=()=>{
+  clearTimeout(navigationTimer);navigationTimer=undefined;navigating=false;activeTicket=null;
+  tickets.forEach(link=>{link.classList.remove('is-tearing');link.removeAttribute('aria-busy');link.style.removeProperty('--stub-start');});
+ };
+ const finish=()=>{
+  if(!navigating||!activeTicket)return;
+  const destination=activeTicket.href;
+  clearTimeout(navigationTimer);navigationTimer=undefined;activeTicket=null;
+  location.assign(destination);
+ };
  document.querySelector('[data-choose]').addEventListener('click',()=>{choosing=true;show();document.querySelector('[data-mode]').focus();});
  document.querySelector('[data-clear]').addEventListener('click',()=>{remove();choosing=false;checkbox.checked=false;show();});
- document.querySelectorAll('[data-mode]').forEach(link=>link.addEventListener('click',event=>{
+ tickets.forEach(link=>{
+ const stub=link.querySelector('.ticket-stub');
+ stub.addEventListener('animationend',event=>{if(event.target===stub&&event.animationName==='ticket-stub-tear'&&activeTicket===link)finish();});
+ link.addEventListener('click',event=>{
   if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+  if(navigating){event.preventDefault();return;}
   if(checkbox.checked){try{localStorage.setItem(storageKey,link.dataset.mode);}catch{}}else if(choosing)remove();
-  if(reduced)return;event.preventDefault();if(navigating)return;navigating=true;link.classList.add('is-tearing');
-  // Short, bounded delay allows the ticket stub to leave before native navigation.
-  setTimeout(()=>location.assign(link.href),420);
- }));show();window.addEventListener('resize',show);window.addEventListener('pageshow',reset);reset();
+  if(motionPreference.matches)return;
+  event.preventDefault();navigating=true;activeTicket=link;
+  // Continue from the current hover/focus position without snapping the paper flat.
+  link.style.setProperty('--stub-start',getComputedStyle(stub).transform||'none');
+  link.setAttribute('aria-busy','true');link.classList.add('is-tearing');
+  // The animation normally finishes in 520ms; this also works if CSS fails to load.
+  navigationTimer=setTimeout(finish,800);
+ });
+ });
+ motionPreference.addEventListener('change',()=>{if(motionPreference.matches)finish();});
+ show();window.addEventListener('resize',show);window.addEventListener('pagehide',reset);window.addEventListener('pageshow',()=>{reset();show();});reset();
 }
 if(route==='home')initTown();
 if(route==='drive')initDrive();
